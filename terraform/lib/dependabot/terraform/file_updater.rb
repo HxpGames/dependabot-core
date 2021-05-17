@@ -25,6 +25,8 @@ module Dependabot
 
           updated_files << updated_file(file: file, content: updated_content)
         end
+        updated_files << updated_lock_file
+        updated_files.compact!
 
         raise "No files changed!" if updated_files.none?
 
@@ -56,6 +58,16 @@ module Dependabot
         end
 
         content
+      end
+
+      def updated_lock_file
+        return unless lock_file?
+
+        within_repo do
+          system "terraform init -upgrade"
+
+          return updated_file(file: lock_file, content: IO.read(".terraform.lock.hcl"))
+        end
       end
 
       def update_git_declaration(new_req, old_req, updated_content, filename)
@@ -125,6 +137,15 @@ module Dependabot
           module\s+["']#{Regexp.escape(dependency.name)}["']\s*\{
           (?:(?!^\}).)*
         /mx
+      end
+
+      def within_repo
+        SharedHelpers.in_a_temporary_directory do
+          dependency_files.each do |file|
+            IO.write(file.name, file.content)
+          end
+          yield
+        end
       end
     end
   end
