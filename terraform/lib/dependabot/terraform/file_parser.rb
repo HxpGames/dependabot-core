@@ -53,6 +53,15 @@ module Dependabot
           end
         end
 
+        lock_file.each do |file|
+          lockfile_provider = parsed_file(file).fetch("provider", {})
+          lockfile_provider.each do |provider|
+            provider.each do |details, hashes|
+              dependency_set << build_lockfile_dependency(file, details, hashes)
+            end
+          end
+        end
+
         dependency_set.dependencies.sort_by(&:name)
       end
 
@@ -123,6 +132,21 @@ module Dependabot
         Dependency.new(
           name: dep_name,
           version: version,
+          package_manager: "terraform",
+          requirements: [
+            requirement: nil,
+            groups: [],
+            file: file.name,
+            source: source
+          ]
+        )
+      end
+      
+      def build_lockfile_dependency(file, details, hashes)
+
+        Dependency.new(
+          name: "lockfile",
+          version: details["version"],
           package_manager: "terraform",
           requirements: [
             requirement: nil,
