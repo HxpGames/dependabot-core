@@ -55,10 +55,8 @@ module Dependabot
 
         lock_file.each do |file|
           lockfile_provider = parsed_file(file).fetch("provider", {})
-          lockfile_provider.each do |provider|
-            provider.each do |details, hashes|
-              dependency_set << build_lockfile_dependency(file, details, hashes)
-            end
+          lockfile_provider.each do |source, details|
+            dependency_set << build_lockfile_dependency(file, source, details.first)
           end
         end
 
@@ -142,17 +140,24 @@ module Dependabot
         )
       end
       
-      def build_lockfile_dependency(file, details, hashes)
+      def build_lockfile_dependency(file, provider_source, details)
+        version_req = details["version"]&.strip
+        hostname, namespace, name = provider_source_from(provider_source, name)
+        dependency_name = "#{namespace}/#{name}"
 
         Dependency.new(
-          name: "lockfile",
-          version: details["version"],
+          name: file.name,
+          version: version_req,
           package_manager: "terraform",
           requirements: [
-            requirement: nil,
+            requirement: version_req,
             groups: [],
             file: file.name,
-            source: source
+            source: {
+              type: "lockfile",
+              registry_hostname: hostname,
+              module_identifier: dependency_name
+            }
           ]
         )
       end
@@ -190,7 +195,7 @@ module Dependabot
       def registry_source_details_from(source_string)
         parts = source_string.split("//").first.split("/")
 
-        if provider && parts.count == 2
+        if parts.count == 2
           {
             type: "provider",
             registry_hostname: "registry.terraform.io",
@@ -379,6 +384,7 @@ module Dependabot
             lock_file ? parsed_file(lock_file) : {}
           end
       end
+
     end
   end
 end
