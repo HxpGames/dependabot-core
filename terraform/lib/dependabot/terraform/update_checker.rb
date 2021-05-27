@@ -104,36 +104,6 @@ module Dependabot
         @latest_version_for_provider_dependency = versions.max
       end
 
-
-      def all_module_versions
-        identifier = dependency_source_details.fetch(:module_identifier)
-        registry_client.all_module_versions(identifier: identifier)
-      end
-
-      def all_provider_versions
-        identifier = dependency_source_details.fetch(:module_identifier)
-        registry_client.all_provider_versions(identifier: identifier)
-      end
-
-      def registry_client
-        @registry_client ||= begin
-          hostname = dependency_source_details.fetch(:registry_hostname)
-          RegistryClient.new(hostname: hostname)
-        end
-      end
-
-      def latest_version_for_provider_dependency
-        return unless provider_dependency?
-
-        return @latest_version_for_provider_dependency if @latest_version_for_provider_dependency
-
-        versions = all_provider_versions
-        versions.reject!(&:prerelease?) unless wants_prerelease?
-        versions.reject! { |v| ignore_requirements.any? { |r| r.satisfied_by?(v) } }
-
-        @latest_version_for_provider_dependency = versions.max
-      end
-
       def wants_prerelease?
         current_version = dependency.version
         if current_version &&
