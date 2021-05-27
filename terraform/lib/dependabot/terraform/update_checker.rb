@@ -15,6 +15,7 @@ module Dependabot
         return latest_version_for_git_dependency if git_dependency?
         return latest_version_for_registry_dependency if registry_dependency?
         return latest_version_for_provider_dependency if provider_dependency?
+        return latest_version_for_provider_dependency if lockfile_dependency?
         # Other sources (mercurial, path dependencies) just return `nil`
       end
 
@@ -202,6 +203,12 @@ module Dependabot
         return false if dependency_source_details.nil?
 
         dependency_source_details.fetch(:type) == "provider"
+      end
+
+      def lockfile_dependency?
+        return false if dependency_source_details.nil?
+
+        dependency_source_details.fetch(:type) == "lockfile"
       end
 
       def dependency_source_details
